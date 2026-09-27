@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Budget Tracker & SMS Parser</title>
+  <meta name="description" content="GitHub-ready standalone budget tracking web app with bank SMS message parser and account statement generator.">
+  
+  <!-- Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fas fa-wallet"></i>
+        </div>
+        <div class="brand-text">
+          <h2>BudgetPulse</h2>
+          <span>SMS & Statement Tracker</span>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li>
+          <a class="nav-link active" data-tab="dashboard">
+            <i class="fas fa-chart-pie"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" data-tab="sms-parser">
+            <i class="fas fa-sms"></i>
+            <span>SMS Reader</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" data-tab="transactions">
+            <i class="fas fa-list-ul"></i>
+            <span>Transactions</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" data-tab="budgets">
+            <i class="fas fa-bullseye"></i>
+            <span>Budgets</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" data-tab="statement">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <span>Statement</span>
+          </a>
+        </li>
+        <li>
+          <a class="nav-link" data-tab="settings">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="quick-stats-badge">
+          Net Account Balance
+          <span id="sidebar-quick-balance">₹0</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Body -->
+    <main class="main-content">
+      
+      <!-- TOP BAR -->
+      <header class="top-bar">
+        <div class="header-title">
+          <h1>Financial Overview</h1>
+          <p>Real-time analytics, SMS parsing & automated statement generator</p>
+        </div>
+
+        <div class="actions-group">
+          <button class="btn btn-primary" id="btn-add-txn">
+            <i class="fas fa-plus"></i> Add Transaction
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB PAGE 1: DASHBOARD -->
+      <section id="tab-page-dashboard" class="tab-page">
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span>Net Balance</span>
+              <div class="metric-icon balance"><i class="fas fa-wallet"></i></div>
+            </div>
+            <div class="metric-value" id="metric-balance">₹0</div>
+            <div class="metric-trend positive"><i class="fas fa-arrow-up"></i> Total Assets</div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span>Total Income</span>
+              <div class="metric-icon income"><i class="fas fa-arrow-down"></i></div>
+            </div>
+            <div class="metric-value" id="metric-income">₹0</div>
+            <div class="metric-trend positive"><i class="fas fa-check"></i> Monthly Credits</div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span>Total Expenses</span>
+              <div class="metric-icon expense"><i class="fas fa-arrow-up"></i></div>
+            </div>
+            <div class="metric-value" id="metric-expense">₹0</div>
+            <div class="metric-trend negative"><i class="fas fa-exclamation-triangle"></i> Monthly Debits</div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="metric-header">
+              <span>Savings Rate</span>
+              <div class="metric-icon savings"><i class="fas fa-piggy-bank"></i></div>
+            </div>
+            <div class="metric-value" id="metric-savings">0%</div>
+            <div class="metric-trend positive"><i class="fas fa-chart-line"></i> Target: 20%+</div>
+          </div>
+        </div>
+
+        <!-- Dashboard Layout Grid -->
+        <div class="dashboard-grid">
+          <!-- Expense Category Breakdown Donut Chart -->
+          <div class="card">
+            <div class="section-header">
+              <h3 class="section-title"><i class="fas fa-chart-donut"></i> Expense Category Breakdown</h3>
+            </div>
+            <div class="pie-chart-wrapper">
+              <div id="dashboard-pie-chart" class="chart-container" style="display:flex; align-items:center; justify-content:center;"></div>
+              <div id="dashboard-chart-legend" class="legend-list"></div>
+            </div>
+          </div>
+
+          <!-- Recent Transactions -->
+          <div class="card">
+            <div class="section-header">
+              <h3 class="section-title"><i class="fas fa-history"></i> Recent Activity</h3>
+              <a class="btn btn-sm btn-secondary" onclick="App.switchTab('transactions')">View All</a>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Merchant</th>
+                    <th>Category</th>
+                    <th>Account</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-transactions-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB PAGE 2: SMS READER & PARSER -->
+      <section id="tab-page-sms-parser" class="tab-page" style="display:none;">
+        <div class="card">
+          <div class="section-header">
+            <h3 class="section-title"><i class="fas fa-sms"></i> Bank Notification & SMS Parser Engine</h3>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">
+            Paste raw transaction SMS notifications or bank alert messages below. Our regex parser automatically extracts amount, merchant, transaction type, reference numbers, and auto-categorizes the expense!
+          </p>
+
+          <form id="form-parse-sms">
+            <div class="sms-input-box">
+              <div class="form-group">
+                <label for="sms-input-text"><i class="fas fa-paste"></i> Paste Bank SMS or Transaction Message Text:</label>
+                <textarea id="sms-input-text" class="form-control" placeholder="e.g. Sent Rs. 450.00 to STARBUCKS on 27-Sep-26. Ref UPI/382910482. A/c **4821 debited."></textarea>
+              </div>
+
+              <!-- Quick Demo Chips -->
+              <div class="sms-examples">
+                <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">Click Sample SMS:</span>
+                <span class="sms-example-chip" data-sample="Sent Rs. 450.00 to STARBUCKS on 27-Sep-26. Ref UPI/382910482. A/c **4821 debited.">
+                  <i class="fas fa-coffee"></i> UPI Coffee Debit
+                </span>
+                <span class="sms-example-chip" data-sample="INR 3,290.00 debited from A/C **4821 at AMAZON SUPERSTORE. Ref928103.">
+                  <i class="fas fa-shopping-bag"></i> Card Shopping
+                </span>
+                <span class="sms-example-chip" data-sample="Your A/c **4821 has been credited by Rs. 50,000.00 by TECHCORP SALARY. NEFT/SAL820192.">
+                  <i class="fas fa-money-check-alt"></i> Salary Credit
+                </span>
+                <span class="sms-example-chip" data-sample="Paid $49.99 to Netflix Subscription with card ending 3310.">
+                  <i class="fas fa-tv"></i> Netflix Subscription
+                </span>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-cogs"></i> Parse Transaction Messages
+            </button>
+          </form>
+
+          <!-- Parsed Preview Table -->
+          <div id="parsed-sms-results" style="display:none; margin-top: 2rem;">
+            <div class="section-header">
+              <h4 class="section-title"><i class="fas fa-clipboard-check"></i> Extracted Transactions Preview</h4>
+              <button class="btn btn-primary btn-sm" id="btn-import-parsed">
+                <i class="fas fa-file-import"></i> Import Selected Transactions
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="parsed-preview-table">
+                <thead>
+                  <tr>
+                    <th>Select</th>
+                    <th>Date</th>
+                    <th>Merchant</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="parsed-preview-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB PAGE 3: TRANSACTIONS LEDGER -->
+      <section id="tab-page-transactions" class="tab-page" style="display:none;">
+        <div class="card">
+          <div class="section-header">
+            <h3 class="section-title"><i class="fas fa-list-alt"></i> Transaction Ledger</h3>
+          </div>
+
+          <!-- Filters Row -->
+          <div class="form-row" style="margin-bottom: 1.5rem;">
+            <div class="form-group">
+              <label><i class="fas fa-search"></i> Search Merchant / Note / Ref</label>
+              <input type="text" id="txn-search-input" class="form-control" placeholder="Search...">
+            </div>
+            <div class="form-group">
+              <label><i class="fas fa-filter"></i> Category Filter</label>
+              <select id="txn-category-filter" class="form-control">
+                <option value="">All Categories</option>
+                <option value="Food & Dining">Food & Dining</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Transportation">Transportation</option>
+                <option value="Utilities & Bills">Utilities & Bills</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Housing">Housing</option>
+                <option value="Salary">Salary</option>
+                <option value="Other Expenses">Other Expenses</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label><i class="fas fa-exchange-alt"></i> Type Filter</label>
+              <select id="txn-type-filter" class="form-control">
+                <option value="">All Types</option>
+                <option value="debit">Debit (Expense)</option>
+                <option value="credit">Credit (Income)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Merchant / Ref</th>
+                  <th>Category</th>
+                  <th>Type</th>
+                  <th>Account</th>
+                  <th>Amount</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="full-transactions-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB PAGE 4: BUDGETS -->
+      <section id="tab-page-budgets" class="tab-page" style="display:none;">
+        <div class="card">
+          <div class="section-header">
+            <h3 class="section-title"><i class="fas fa-bullseye"></i> Monthly Category Budgets</h3>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+            Monitor your monthly spending limits per category. Visual alert badges highlight categories that reach 80% or exceed limits.
+          </p>
+
+          <div id="budget-progress-list" class="budget-list"></div>
+        </div>
+      </section>
+
+      <!-- TAB PAGE 5: STATEMENT GENERATOR -->
+      <section id="tab-page-statement" class="tab-page" style="display:none;">
+        <div class="card no-print">
+          <div class="section-header">
+            <h3 class="section-title"><i class="fas fa-file-invoice-dollar"></i> Account Statement Generator</h3>
+            <div class="actions-group">
+              <button class="btn btn-secondary" id="btn-export-csv">
+                <i class="fas fa-file-csv"></i> Download CSV
+              </button>
+              <button class="btn btn-primary" id="btn-print-statement">
+                <i class="fas fa-print"></i> Print / PDF
+              </button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>From Date</label>
+              <input type="date" id="stmt-start-date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>To Date</label>
+              <input type="date" id="stmt-end-date" class="form-control">
+            </div>
+            <div class="form-group" style="justify-content: flex-end;">
+              <button class="btn btn-primary" id="btn-generate-statement" style="height: 42px;">
+                <i class="fas fa-sync"></i> Generate Statement
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rendered Statement View -->
+        <div class="statement-wrapper">
+          <div class="statement-header">
+            <div class="statement-logo">
+              <h2>Account Statement</h2>
+              <span>Smart Budget Tracker Statement</span>
+            </div>
+            <div class="statement-meta">
+              <p>Generated: <strong><script>document.write(new Date().toISOString().split('T')[0])</script></strong></p>
+              <p>Account: <strong>All Linked Accounts</strong></p>
+            </div>
+          </div>
+
+          <!-- Statement Summary Box -->
+          <div class="statement-summary-box">
+            <div class="statement-summary-item">
+              <p>Opening Balance</p>
+              <h3 id="stmt-opening-bal">₹0</h3>
+            </div>
+            <div class="statement-summary-item">
+              <p>Total Credits (+)</p>
+              <h3 id="stmt-total-credits" style="color:#10b981;">₹0</h3>
+            </div>
+            <div class="statement-summary-item">
+              <p>Total Debits (-)</p>
+              <h3 id="stmt-total-debits" style="color:#ef4444;">₹0</h3>
+            </div>
+            <div class="statement-summary-item">
+              <p>Closing Balance</p>
+              <h3 id="stmt-closing-bal">₹0</h3>
+            </div>
+          </div>
+
+          <!-- Itemized Ledger Table -->
+          <table class="statement-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description / Payee</th>
+                <th>Category</th>
+                <th>Reference</th>
+                <th>Credit (+)</th>
+                <th>Debit (-)</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody id="statement-table-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB PAGE 6: SETTINGS -->
+      <section id="tab-page-settings" class="tab-page" style="display:none;">
+        <div class="card">
+          <div class="section-header">
+            <h3 class="section-title"><i class="fas fa-cog"></i> Preferences & Data Management</h3>
+          </div>
+
+          <div class="form-group" style="max-width:300px;">
+            <label><i class="fas fa-globe"></i> Default Currency Symbol</label>
+            <select id="setting-currency" class="form-control">
+              <option value="₹">₹ (INR - Indian Rupee)</option>
+              <option value="$">$ (USD - US Dollar)</option>
+              <option value="€">€ (EUR - Euro)</option>
+              <option value="£">£ (GBP - British Pound)</option>
+            </select>
+          </div>
+
+          <hr style="border-color:var(--border-color); margin: 1.5rem 0;">
+
+          <h4>Backup & Restore</h4>
+          <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom: 1rem;">
+            Export your complete financial records as JSON for backup or migrate to another device.
+          </p>
+
+          <div class="actions-group">
+            <button class="btn btn-secondary" id="btn-export-backup">
+              <i class="fas fa-download"></i> Download Full JSON Backup
+            </button>
+            <button class="btn btn-danger" id="btn-reset-data">
+              <i class="fas fa-trash"></i> Reset Data to Default Demo
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL: ADD MANUAL TRANSACTION -->
+  <div class="modal-backdrop" id="modal-add-txn">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fas fa-plus-circle"></i> Add Manual Transaction</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+
+      <form id="form-add-txn">
+        <div class="form-group">
+          <label>Merchant / Payee Name</label>
+          <input type="text" name="merchant" class="form-control" required placeholder="e.g. Starbucks Coffee">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Amount</label>
+            <input type="number" step="0.01" name="amount" class="form-control" required placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <select name="type" class="form-control" required>
+              <option value="debit">Debit (Expense)</option>
+              <option value="credit">Credit (Income)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select name="category" class="form-control" required>
+              <option value="Food & Dining">Food & Dining</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Transportation">Transportation</option>
+              <option value="Utilities & Bills">Utilities & Bills</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Housing">Housing</option>
+              <option value="Salary">Salary</option>
+              <option value="Other Expenses">Other Expenses</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" name="date" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Account / Card</label>
+            <input type="text" name="account" class="form-control" placeholder="e.g. HDFC **4821">
+          </div>
+          <div class="form-group">
+            <label>Reference No (Optional)</label>
+            <input type="text" name="refNo" class="form-control" placeholder="e.g. UPI/12345">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Notes</label>
+          <input type="text" name="note" class="form-control" placeholder="Optional transaction note">
+        </div>
+
+        <div class="actions-group" style="justify-content: flex-end; margin-top: 1.25rem;">
+          <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Core JS Modules -->
+  <script src="js/storage.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/statement.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
